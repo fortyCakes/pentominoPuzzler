@@ -23,19 +23,15 @@ export class Pentomino {
   }
 
   public get height(): number {
-    for (let y = 4; y >= 0; y--) {
-      var anyBlocks = this.pentominoBlocks.map(p => p.y == y)
-      if (!anyBlocks) return y;
-    }
-    return 0;
+    var maxY = Math.max(...this.pentominoBlocks.map(p => p.y));
+    var minY = Math.min(...this.pentominoBlocks.map(p => p.y));
+    return maxY - minY + 1;
   }
 
   public get width(): number {
-    for (let x = 4; x >= 0; x--) {
-      var anyBlocks = this.pentominoBlocks.map(p => p.x == x)
-      if (!anyBlocks) return x;
-    }
-    return 0;
+    var maxX = Math.max(...this.pentominoBlocks.map(p => p.x));
+    var minX = Math.min(...this.pentominoBlocks.map(p => p.x));
+    return maxX - minX + 1;
   }
 
   public rotate() {

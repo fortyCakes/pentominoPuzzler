@@ -25,9 +25,9 @@ export abstract class PuzzleGenerator {
             var xOffset: number;
             var yOffset: number;
         
-            let mustBeAdjacent = i != 0;
+            let firstPlacement = i != 0;
 
-            if (mustBeAdjacent) {
+            if (!firstPlacement) {
               xOffset = Math.floor(Math.random() * grid.width);
               yOffset = Math.floor(Math.random() * grid.height);
             } else {
@@ -36,7 +36,7 @@ export abstract class PuzzleGenerator {
             }
         
             placed = 
-              grid.placePentomino(pentomino, xOffset, yOffset, true, mustBeAdjacent);
+              grid.placePentomino(pentomino, xOffset, yOffset, true, firstPlacement);
       
             if (attempts++ > 15000) {
               return false;

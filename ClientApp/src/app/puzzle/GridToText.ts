@@ -16,6 +16,10 @@ export abstract class GridToText {
     for (let pentominoIndex = 0; pentominoIndex < grid.pentominoes.length; pentominoIndex++) {
       retval += grid.pentominoes[pentominoIndex].name;
     }
+    retval += '\n'
+    grid.pentominoes.forEach(p => {
+      retval += p.name + ": (" + p.xOffset + ", " + p.yOffset + "), " + p.width + "x" + p.height + "\n";
+    })
     retval += '\n';
 
     //for (let y = 0; y < 5; y++)
