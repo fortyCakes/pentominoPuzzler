@@ -5,28 +5,38 @@ import { PentominoLibrary } from "./pentomino-library";
 export abstract class PuzzleGenerator {
     public static generate(grid: Grid, numberOfPieces: number, numberOfStars: number, numberOfPrizes: number, numberOfBlockers: number, hidePieces: boolean) : boolean {
 
-        var unusedPentominoes = PentominoLibrary.list;
+        var unusedPentominoes = PentominoLibrary.getOneOfEach();
 
         for (let i = 0; i < numberOfPieces; i++) {
           var placed = false;
           var pentominoCode : string;
           var attempts = 0;
-            do {
-            pentominoCode = unusedPentominoes
-              .charAt(Math.floor(Math.random() * unusedPentominoes.length))
-              .toString();
-            type ObjectKey = keyof typeof PentominoLibrary;
-            var pentomino = PentominoLibrary[pentominoCode as ObjectKey] as Pentomino;
+
+
+          do {
+            var pentominoIndex = Math.floor(Math.random() * unusedPentominoes.length);
+            var pentomino = unusedPentominoes[pentominoIndex];
+
+            var rotations = Math.floor(Math.random() * 3);
+            for (var r = 0; r < rotations; r++) {
+              pentomino.rotate();
+            }
         
-            var xOffset = Math.floor(Math.random() * grid.width);
-            var yOffset = Math.floor(Math.random() * grid.height);
+            var xOffset: number;
+            var yOffset: number;
         
             let mustBeAdjacent = i != 0;
+
+            if (mustBeAdjacent) {
+              xOffset = Math.floor(Math.random() * grid.width);
+              yOffset = Math.floor(Math.random() * grid.height);
+            } else {
+              xOffset = Math.floor(Math.random() * grid.width / 3 + grid.width / 3);
+              yOffset = Math.floor(Math.random() * grid.height / 3 + grid.height / 3);
+            }
         
-            placed =
-              placed ||
+            placed = 
               grid.placePentomino(pentomino, xOffset, yOffset, true, mustBeAdjacent);
-            //console.log("trying to place " + pentominoCode + " at " + xOffset + ", " +yOffset + " with clash true and mustBeAdjacent " + mustBeAdjacent + ", status: " + placed)
       
             if (attempts++ > 15000) {
               return false;
@@ -34,49 +44,24 @@ export abstract class PuzzleGenerator {
           } while (!placed);
       
           if (placed) {
-            unusedPentominoes = unusedPentominoes.replace(pentominoCode, "");
+            // remove from available list
+            unusedPentominoes.splice(pentominoIndex, 1);
           }
         }
-        
-        
-        for (let i = 0; i < numberOfStars; i++)
-        {
-            var locations = [] as Array<{x:number, y:number}>;
-        
-            for (let x = 0; x < grid.width; x++)
-            {
-              for (let y = 0; y < grid.height; y++)
-              {
-                if (grid.nodes[x][y] == "P")
-                {
-                  locations.push({"x": x, "y": y});
-                }
-              }
-            }
-      
-            if (locations.length == 0) {
-              // skip
-            }
-            else {
-      
-              var loc = locations[Math.floor(Math.random() * locations.length)];
-              grid.nodes[loc.x][loc.y] = "*";
-            }
-        }
       
         for (let i = 0; i < numberOfStars; i++)
         {
-          PuzzleGenerator.placeItem(grid, "*", "P", 5);
+          PuzzleGenerator.placeItem(grid, grid.stars, true, false, false, 15);
         }
 
         for (let i = 0; i < numberOfPrizes; i++)
         {
-          PuzzleGenerator.placeItem(grid, "1", "P.", 2);
+          PuzzleGenerator.placeItem(grid, grid.points, true, true, false, 2);
         }
 
         for (let i = 0; i < numberOfBlockers; i++)
         {
-          PuzzleGenerator.placeItem(grid, "X", ".", 3);
+          PuzzleGenerator.placeItem(grid, grid.blocks, false, true, false, 3);
         }
       
         if (hidePieces)
@@ -93,28 +78,57 @@ export abstract class PuzzleGenerator {
       return true;
     }
 
-    private static placeItem(grid: Grid, item: string, validLocations: string, locationsToTry: number) {
+  private static placeItem(grid: Grid, placementArray: GridLocation[], placeOnPentomino: boolean, placeOnEmpty: boolean, placeOnOtherObject: boolean, spreadFactor: number) {
         var locations = [] as Array<GridLocation>;
 
         for (let x = 0; x < grid.width; x++) {
-            for (let y = 0; y < grid.height; y++) {
-                if (validLocations.includes(grid.nodes[x][y])) {
-                    locations.push({ "x": x, "y": y });
-                }
+          for (let y = 0; y < grid.height; y++) {
+            var locationIsValid = true;
+            var loc = new GridLocation(x, y);
+            var onPentomino = false;
+
+            for (var pentominoIndex = 0; pentominoIndex < grid.pentominoes.length; pentominoIndex++) {
+               onPentomino = onPentomino || grid.pentominoes[pentominoIndex].containsLocation(loc);
             }
+
+            if (!placeOnPentomino && onPentomino) locationIsValid = false;
+            if (!placeOnEmpty && !onPentomino) locationIsValid = false;
+
+            if (!placeOnOtherObject) {
+              for (var starIndex = 0; starIndex < grid.stars.length; starIndex++) {
+                if (grid.stars[starIndex].x == loc.x && grid.stars[starIndex].y == loc.y) {
+                  locationIsValid = false;
+                }
+              }
+              for (var blockIndex = 0; blockIndex < grid.blocks.length; blockIndex++) {
+                if (grid.blocks[blockIndex].x == loc.x && grid.blocks[blockIndex].y == loc.y) {
+                  locationIsValid = false;
+                }
+              }
+              for (var pointIndex = 0; pointIndex < grid.points.length; pointIndex++) {
+                if (grid.points[pointIndex].x == loc.x && grid.points[pointIndex].y == loc.y) {
+                  locationIsValid = false;
+                }
+              }
+            }
+
+            if (locationIsValid) {
+              locations.push({ "x": x, "y": y });
+            }
+          }
         }
 
         if (locations.length == 0) {
-            // skip
+          console.log("No valid locations for object to place");
         }
         else {
             var loc: GridLocation = new GridLocation(-1,-1);
             var distance: number = -999;
 
-            for (let i = 0; i < locationsToTry; i++)
+            for (let i = 0; i < spreadFactor; i++)
             {
                 var newLoc : GridLocation = locations[Math.floor(Math.random() * locations.length)];
-                var newDistance = findDistanceTo(grid, newLoc, item);
+                var newDistance = findDistanceTo(grid, newLoc, placementArray);
 
                 if (newDistance > distance) {
                     loc = newLoc;
@@ -122,25 +136,21 @@ export abstract class PuzzleGenerator {
                 }
             }
 
-            grid.nodes[loc.x][loc.y] = item;
+            placementArray.push(loc);
 
             
         }
     }
 }
 
-function findDistanceTo(grid: Grid, loc: { x: number; y: number; }, item: string) : number {
+function findDistanceTo(grid: Grid, loc: { x: number; y: number; }, placementArray: GridLocation[]) : number {
     var distance = 999;
     
-    for (let x = 0; x < grid.width; x++)
+    for (let placedItemIndex = 0; placedItemIndex < placementArray.length; placedItemIndex++)
     {
-        for (let y = 0; y < grid.height; y++) {
-            if (grid.nodes[x][y] == item)
-            {
-                var newDist = Math.sqrt(Math.pow(x -loc.x, 2) + Math.pow(y - loc.y, 2));
-                if (newDist < distance) distance = newDist;
-            }
-        }
+      var existingItem = placementArray[placedItemIndex];
+      var newDist = Math.sqrt(Math.pow(existingItem.x -loc.x, 2) + Math.pow(existingItem.y - loc.y, 2));
+      if (newDist < distance) distance = newDist;
     }
 
     return distance;

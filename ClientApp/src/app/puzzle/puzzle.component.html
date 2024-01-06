@@ -1,5 +1,6 @@
 
-<p><span style="font:bold 24px consolas; white-space:pre" [innerHTML]="puzzle"></span></p>
+<p><span style="font:24px consolas; white-space:pre" [innerHTML]="puzzleText"></span></p>
 <p></p>
-<button class="btn btn-primary" (click)="generatePuzzle()">Generate New Puzzle</button>
-<p>Successful generation: {{generated}}</p>
+<button class="btn btn-primary" (click)="generatePuzzle()">Generate New Puzzle</button>&nbsp;
+<button class="btn btn-secondary" (click)="toggleSolution()">Show Solution</button>
+<!--<p>Successful generation: {{generated}}</p>-->
